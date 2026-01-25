@@ -1,0 +1,50 @@
+name: Update NaowhUI Zip
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'NaowhUI/**'
+      - 'NaowhUI_Data/**'
+
+jobs:
+  update-zip:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Create/Update NaowhUI.zip
+        run: |
+          # Remove old zip if it exists
+          rm -f NaowhUI.zip
+          
+          # Create new zip with NaowhUI and NaowhUI_Data folders
+          zip -r NaowhUI.zip NaowhUI NaowhUI_Data
+          
+          echo "Zip file updated successfully"
+      
+      - name: Check for changes
+        id: check_changes
+        run: |
+          git add NaowhUI.zip
+          if git diff --staged --quiet; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "No changes to zip file"
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "Zip file has changes"
+          fi
+      
+      - name: Commit and push changes
+        if: steps.check_changes.outputs.has_changes == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git commit -m "Auto-update: NaowhUI.zip $(date +'%Y-%m-%d %H:%M:%S')"
+          git push
